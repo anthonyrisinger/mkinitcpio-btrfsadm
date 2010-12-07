@@ -1,0 +1,10 @@
+# mkinitcpio preset/include for bootramfs [btrfsadm]
+
+[[ -z ${PRESETS} ]] || ! [[ ${PRESETS[*]} =~ btrfsadm_bootramfs ]] &&
+    PRESETS+=('btrfsadm_bootramfs')
+
+[[ -z ${ALL_kver} ]] &&
+    . /etc/mkinitcpio.d/kernel26.kver
+
+btrfsadm_bootramfs_config="/etc/mkbootcpio.conf"
+btrfsadm_bootramfs_image="/var/lib/btrfsadm/boot/btrfsadm-bootramfs.img"

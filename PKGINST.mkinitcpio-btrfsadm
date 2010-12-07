@@ -1,0 +1,100 @@
+post_install() { post_upgrade "${@}"; }
+
+post_upgrade() {
+
+    local root_mount=$(cat /proc/mounts | grep ' / btrfs' | cut -d\  -f1)
+    local btrfs_uuid=$(blkid -o value -s UUID "$(cat /proc/mounts | grep ' / btrfs' | cut -d\  -f1)")
+
+    echo
+
+    cat <<_
+    -------------------------------- IMPORTANT ---------------------------------
+
+    btrfsadm_bootramfs -- a kernel + initramfs based bootloader -- necessary
+    because standard bootloaders are unable to exec kernels within a btrfs boot
+    device. This hook prepares a 2-stage boot: stage-1 mounts the btrfs device,
+    and presents a simple menu; stage-2 kexec's the real kernel within the btrfs
+    boot device. The bootramfs MUST be regenerated after every kernel update to
+    prevent btrfs lockouts, ie. upstream deciding to use an incompat flag.
+
+    Please read everything below carefully; much care has been taken to ensure
+    the quality of the information, and prevent any problems which may cause
+    your system to stop booting (non-destructive of course, just annoying :-).
+
+    Follow everything in order, and precisely. Procedure assumes the "btrfsadm"
+    tool is available (dependency). Seek maintainer with problems/corrections.
+
+    ----------------------------------------------------------------------------
+
+_
+
+    { [[ -z ${root_mount} ]] && cat <<_
+>>> WARNING: Root device is not btrfs, but I expect you know this.
+_
+    } ||
+    { [[ -n ${btrfs_uuid} ]] && cat <<_
+>>> Attempting to locate btrfs root device UUID ...
+  # BTRFS_ROOT_DEVICE=/dev/disk/by-uuid/${btrfs_uuid}
+_
+    } || {
+      cat <<_
+>>> WARNING: Root device is btrfs, but unable to determine UUID.
+_
+    }
+
+    ! grep -qe '/var/lib/btrfsadm' /proc/mounts /etc/fstab && cat <<_
+>>> Add "/var/lib/btrfsadm" to fstab ...
+  # echo \${BTRFS_ROOT_DEVICE} /var/lib/btrfsadm btrfs defaults,subvolid=0 0 0 >> /etc/fstab
+  # mount -a
+_
+
+    ! grep -qe 'btrfsadm_bootramfs' /etc/mkinitcpio.d/kernel26.preset && cat <<_
+>>> If desired, enable automatic bootramfs rebuilds ...
+  # cat <<BLDR >> /etc/mkinitcpio.d/kernel26.preset
+  > PRESETS+=('btrfsadm_bootramfs')
+  > . /etc/mkinitcpio.d/btrfsadm_bootramfs.preset
+  > BLDR
+    TODO: get mkinitcpio to handle this natively...
+_
+
+    grep -qe '^HOOKS=.*btrfs[^a]' /etc/mkinitcpio.conf && cat <<_
+>>> WARNING: Detected incompatible btrfs hooks in /etc/mkinitcpio.conf. Remove
+    them and add "btrfsadm", otherwise this hook WILL NOT EXECUTE PROPERLY ...
+_
+
+    ! grep -qe '^HOOKS=.*btrfsadm' /etc/mkinitcpio.conf && cat <<_
+>>> Add "btrfsadm" HOOK to /etc/mkinitcpio.conf ...
+  > HOOKS=" ... btrfsadm"
+_
+
+    cat <<_
+>>> Update bootramfs image ...
+  # mkinitcpio -p btrfsadm_bootramfs
+>>> Update initramfs image ...
+  # mkinitcpio -p kernel26
+>>> For more information/explantion see:
+    [BBS] http://bbs.archlinux.org/viewtopic.php?id=88195
+    [AUR] http://aur.archlinux.org/packages.php?ID=33376
+
+    Have ideas for this hook? Suggest on the forum thread!
+    Want to see this offical? Suggest on the mailing list!
+    Did this blow up your system? Tell me what went wrong!
+_
+
+    echo
+
+}
+
+post_remove() {
+
+    cat <<_
+
+>>> Remove "btrfsadm" from /etc/mkinitcpio.conf
+>>> Run mkinitcpio to update your initramfs image (remove hook)
+  # mkinitcpio -p kernel26
+
+    WARNING: Unless you understand why, this may render your system unbootable.
+
+_
+
+}
