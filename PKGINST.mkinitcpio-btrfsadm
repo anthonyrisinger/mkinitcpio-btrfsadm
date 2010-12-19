@@ -46,6 +46,7 @@ _
 
     ! grep -qe '/var/lib/btrfsadm' /proc/mounts /etc/fstab && cat <<_
 >>> Add "/var/lib/btrfsadm" to fstab ...
+  # mkdir -p /var/lib/btrfsadm
   # echo \${BTRFS_ROOT_DEVICE} /var/lib/btrfsadm btrfs defaults,subvolid=0 0 0 >> /etc/fstab
   # mount -a
 _

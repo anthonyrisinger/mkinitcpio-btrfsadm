@@ -16,6 +16,7 @@ source=('btrfsadm_bootramfs.inst'
         'btrfsadm_bootramfs.preset'
         'btrfsadm.hook'
         'btrfsadm.inst'
+        'btrfsadm.init'
         'mkbootcpio.conf'
         'PKGINST.mkinitcpio-btrfsadm')
 
@@ -31,6 +32,8 @@ package() {
         ${srcdir}/btrfsadm.hook ${pkgdir}/lib/initcpio/hooks/btrfsadm
     install -o root -g root -D \
         ${srcdir}/btrfsadm.inst ${pkgdir}/lib/initcpio/install/btrfsadm
+    install -o root -g root -D \
+        ${srcdir}/btrfsadm.init ${pkgdir}/lib/initcpio/btrfsadm/init
     install -o root -g root -D \
         ${srcdir}/mkbootcpio.conf ${pkgdir}/etc/mkbootcpio.conf
 
