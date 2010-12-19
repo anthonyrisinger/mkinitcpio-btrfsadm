@@ -19,7 +19,7 @@ source=('btrfsadm_bootramfs.inst'
         'mkbootcpio.conf'
         'PKGINST.mkinitcpio-btrfsadm')
 
-build () { return; }
+build() { return; }
 
 package() {
 

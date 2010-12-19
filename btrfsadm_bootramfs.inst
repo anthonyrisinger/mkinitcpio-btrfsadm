@@ -31,8 +31,8 @@ help () {
     cat <<HELPEOF
   This hook generates a bootramfs.
 
-  WARNING: DO NOT use with ANY other hooks!
-           MUST be ran standalone.
+  WARNING: DO NOT use with other hooks!
+           MUST RUN STANDALONE.
 HELPEOF
 
 }

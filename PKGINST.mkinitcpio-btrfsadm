@@ -10,7 +10,7 @@ post_upgrade() {
     cat <<_
     -------------------------------- IMPORTANT ---------------------------------
 
-    btrfsadm_bootramfs -- a kernel + initramfs based bootloader -- necessary
+    btrfsadm_bootramfs -- a kernel + initramfs based bootloader -- is necessary
     because standard bootloaders are unable to exec kernels within a btrfs boot
     device. This hook prepares a 2-stage boot: stage-1 mounts the btrfs device,
     and presents a simple menu; stage-2 kexec's the real kernel within the btrfs
@@ -19,9 +19,9 @@ post_upgrade() {
 
     Please read everything below carefully; much care has been taken to ensure
     the quality of the information, and prevent any problems which may cause
-    your system to stop booting (non-destructive of course, just annoying :-).
+    your system to stop booting (non-destructive/recoverable, but annoying :-).
 
-    Follow everything in order, and precisely. Procedure assumes the "btrfsadm"
+    Follow everything ORDERLY and PRECISELY. Procedure requires the "btrfsadm"
     tool is available (dependency). Seek maintainer with problems/corrections.
 
     ----------------------------------------------------------------------------
@@ -30,6 +30,7 @@ _
 
     { [[ -z ${root_mount} ]] && cat <<_
 >>> WARNING: Root device is not btrfs, but I expect you know this.
+  # BTRFS_ROOT_DEVICE=/dev/disk/by-uuid/#(:  YOU MUST ACQUIRE THIS  :)#
 _
     } ||
     { [[ -n ${btrfs_uuid} ]] && cat <<_
@@ -39,6 +40,7 @@ _
     } || {
       cat <<_
 >>> WARNING: Root device is btrfs, but unable to determine UUID.
+  # BTRFS_ROOT_DEVICE=/dev/disk/by-uuid/#(:  YOU MUST ACQUIRE THIS  :)#
 _
     }
 
@@ -54,12 +56,12 @@ _
   > PRESETS+=('btrfsadm_bootramfs')
   > . /etc/mkinitcpio.d/btrfsadm_bootramfs.preset
   > BLDR
-    TODO: get mkinitcpio to handle this natively...
+  > 
 _
 
     grep -qe '^HOOKS=.*btrfs[^a]' /etc/mkinitcpio.conf && cat <<_
 >>> WARNING: Detected incompatible btrfs hooks in /etc/mkinitcpio.conf. Remove
-    them and add "btrfsadm", otherwise this hook WILL NOT EXECUTE PROPERLY ...
+    them and replace with "btrfsadm", ELSE HOOK WILL REFUSE TO EXECUTE.
 _
 
     ! grep -qe '^HOOKS=.*btrfsadm' /etc/mkinitcpio.conf && cat <<_
