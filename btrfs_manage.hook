@@ -39,7 +39,7 @@ btrfs_mount_handler () {
     #. /etc/btrfsadm.conf
 
     # Define global path prefix.
-    : ${P:=}
+    : P=${P:+/${P#/}}
 
     # Define top-level entities.
     : ${D_BOOT:=boot}
