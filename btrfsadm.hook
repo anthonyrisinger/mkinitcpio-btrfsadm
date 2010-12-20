@@ -1,4 +1,4 @@
-# BTRFS[ADM] boot/manage/repair hook
+# BTRFS boot/manage/repair hook
 #
 # Copyright (c) 2010, C Anthony Risinger
 # All rights reserved.
@@ -24,44 +24,81 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-# config variables
-# FIXME: source a config from /etc
+btrfs_mount_handler () {
 
-# internal variables
-: ${BTRFSADM_P_PREFIX:=}
+    # Localize identifiers.
+    local \
+        P D_BOOT L_HEAD D_POOL D_REFS D_VOLS D_BOOT_REAL L_POOL_SELF L_POOL_FREE D_REFS_RO D_REFS_RW \
+        D_REFS_XX_SYS D_REFS_XX_SYS_LOG D_REFS_XX_USR D_VOLS_XX_BOOT \
+        S_VOLS_XX_FS F_VOLS_XX_ID0 L_VOLS_XX_ID1 F_VOLS_XX_LOG F_VOLS_XX_META \
+        P_BOOT P_BOOT_REAL P_HEAD P_POOL P_POOL_SELF P_POOL_FREE P_REFS P_REFS_RO P_REFS_RO_SYS \
+        P_REFS_RO_SYS_LOG P_REFS_RO_USR P_REFS_RW P_REFS_RW_SYS \
+        P_REFS_RW_SYS_LOG P_REFS_RW_USR P_VOLS
 
-: ${BTRFSADM_D_POOL:=pool}
-: ${BTRFSADM_D_REFS:=refs}
-: ${BTRFSADM_D_VOLS:=vols}
+    # Source configuration.
+    #. /etc/btrfsadm.conf
 
-: ${BTRFSADM_L_POOL_SELF:=SELF}
-: ${BTRFSADM_L_POOL_FREE:=FREE}
+    # Define global path prefix.
+    : ${P:=}
 
-: ${BTRFSADM_D_REFS_RO:=ro}
-: ${BTRFSADM_D_REFS_RW:=rw}
-: ${BTRFSADM_D_REFS_XX_SYS:=sys}
-: ${BTRFSADM_D_REFS_XX_USR:=usr}
+    # Define top-level entities.
+    : ${D_BOOT:=boot}
+    : ${L_HEAD:=HEAD}
+    : ${D_POOL:=pool}
+    : ${D_REFS:=refs}
+    : ${D_VOLS:=vols}
 
-: ${BTRFSADM_D_VOLS_XX_BOOT:=boot}
-: ${BTRFSADM_S_VOLS_XX_FS:=fs}
-: ${BTRFSADM_F_VOLS_XX_ID0:=id0}
-: ${BTRFSADM_L_VOLS_XX_ID1:=id1}
-: ${BTRFSADM_F_VOLS_XX_LOG:=log}
-: ${BTRFSADM_F_VOLS_XX_META:=meta}
+    # Define entities within BOOT.
+    : ${D_BOOT_REAL:=real}
 
-: ${BTRFSADM_P_POOL:=${BTRFSADM_P_PREFIX}/${BTRFSADM_D_POOL}}
-: ${BTRFSADM_P_POOL_SELF:=${BTRFSADM_P_POOL}/${BTRFSADM_S_POOL_SELF}}
-: ${BTRFSADM_P_POOL_FREE:=${BTRFSADM_P_POOL}/${BTRFSADM_S_POOL_FREE}}
+    # Define entities within POOL.
+    : ${L_POOL_SELF:=SELF}
+    : ${L_POOL_FREE:=FREE}
 
-: ${BTRFSADM_P_REFS:=${BTRFSADM_P_PREFIX}/${BTRFSADM_D_REFS}}
-: ${BTRFSADM_P_REFS_RO:=${BTRFSADM_P_REFS}/${BTRFSADM_D_REFS_RO}}
-: ${BTRFSADM_P_REFS_RO_SYS:=${BTRFSADM_P_REFS_RO}/${BTRFSADM_D_REFS_XX_SYS}}
-: ${BTRFSADM_P_REFS_RO_USR:=${BTRFSADM_P_REFS_RO}/${BTRFSADM_D_REFS_XX_USR}}
-: ${BTRFSADM_P_REFS_RW:=${BTRFSADM_P_REFS}/${BTRFSADM_D_REFS_RW}}
-: ${BTRFSADM_P_REFS_RW_SYS:=${BTRFSADM_P_REFS_RW}/${BTRFSADM_D_REFS_XX_SYS}}
-: ${BTRFSADM_P_REFS_RW_USR:=${BTRFSADM_P_REFS_RW}/${BTRFSADM_D_REFS_XX_USR}}
+    # Define entities within REFS.
+    : ${D_REFS_RO:=ro}
+    : ${D_REFS_RW:=rw}
+    : ${D_REFS_XX_SYS:=sys}
+    : ${D_REFS_XX_SYS_LOG:=log}
+    : ${D_REFS_XX_USR:=usr}
 
-: ${BTRFSADM_P_VOLS:=${BTRFSADM_P_PREFIX}/${BTRFSADM_D_VOLS}}
+    # Define entries within VOLS/*/.
+    : ${D_VOLS_XX_BOOT:=boot}
+    : ${S_VOLS_XX_FS:=fs}
+    : ${F_VOLS_XX_ID0:=id0}
+    : ${L_VOLS_XX_ID1:=id1}
+    : ${F_VOLS_XX_LOG:=log}
+    : ${F_VOLS_XX_META:=meta}
+
+    # Prepare paths for BOOT.
+    : ${P_BOOT:=${P}/${D_BOOT}}
+    : ${P_BOOT_REAL:=${P_BOOT}/${D_BOOT_REAL}}
+
+    # Prepare paths for HEAD.
+    : ${P_HEAD:=${P}/${L_HEAD}}
+
+    # Prepare paths for POOL.
+    : ${P_POOL:=${P}/${D_POOL}}
+    : ${P_POOL_SELF:=${P_POOL}/${L_POOL_SELF}}
+    : ${P_POOL_FREE:=${P_POOL}/${L_POOL_FREE}}
+
+    # Prepare paths for REFS.
+    : ${P_REFS:=${P}/${D_REFS}}
+    : ${P_REFS_RO:=${P_REFS}/${D_REFS_RO}}
+    : ${P_REFS_RO_SYS:=${P_REFS_RO}/${D_REFS_XX_SYS}}
+    : ${P_REFS_RO_SYS_LOG:=${P_REFS_RO}/${D_REFS_XX_SYS}/${D_REFS_XX_SYS_LOG}}
+    : ${P_REFS_RO_USR:=${P_REFS_RO}/${D_REFS_XX_USR}}
+    : ${P_REFS_RW:=${P_REFS}/${D_REFS_RW}}
+    : ${P_REFS_RW_SYS:=${P_REFS_RW}/${D_REFS_XX_SYS}}
+    : ${P_REFS_RW_SYS_LOG:=${P_REFS_RW}/${D_REFS_XX_SYS}/${D_REFS_XX_SYS_LOG}}
+    : ${P_REFS_RW_USR:=${P_REFS_RW}/${D_REFS_XX_USR}}
+
+    # Prepare paths for VOLS.
+    : ${P_VOLS:=${P}/${D_VOLS}}
+
+    set;return;
+
+}
 
 # output handlers
 btrfsadm_info () { [ "${quiet}" != "y" ] && echo "btrfsadm(INFO): ${@}"; }
@@ -81,7 +118,7 @@ btrfs_mount_handler_DEP () {
 
 }
 
-btrfs_mount_handler () {
+btrfs_mount_handler_OLD () {
 
     local x i=0 work=${1%/}
     BTRFS_DIR_WORK=${work}
