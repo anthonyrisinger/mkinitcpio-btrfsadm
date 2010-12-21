@@ -24,13 +24,26 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-btrfs_mount_handler () {
+
+# Output handlers.
+btrfs_manage_d () { [[ -n ${quiet#y} && -z ${debug#y} ]] && echo "btrfs_manage(DEBUG): ${@}"; }
+
+btrfs_manage_i () { [[ -n ${quiet#y} ]] && echo "btrfs_manage(INFO): ${@}"; }
+
+btrfs_manage_w () { echo "btrfs_manage(WARN): ${@}"; }
+
+btrfs_manage_e () { echo "btrfs_manage(ERROR): ${@}"; }
+
+btrfs_manage_f () { echo "btrfs_manage(FATAL): ${@}"; break=y; }
+
+
+btrfs_manage_handler () {
 
     # Localize identifiers.
     local \
         P D_BOOT L_HEAD D_POOL D_REFS D_VOLS D_BOOT_REAL L_POOL_SELF L_POOL_FREE D_REFS_RO D_REFS_RW \
-        D_REFS_XX_SYS D_REFS_XX_SYS_LOG D_REFS_XX_USR D_VOLS_XX_BOOT \
-        S_VOLS_XX_FS F_VOLS_XX_ID0 L_VOLS_XX_ID1 F_VOLS_XX_LOG F_VOLS_XX_META \
+        D_REFS_XX_SYS D_REFS_XX_SYS_LOG D_REFS_XX_USR F_VOLS_XX_ATTR D_VOLS_XX_BOOT \
+        S_VOLS_XX_FS F_VOLS_XX_ID0 L_VOLS_XX_ID1 F_VOLS_XX_LOG \
         P_BOOT P_BOOT_REAL P_HEAD P_POOL P_POOL_SELF P_POOL_FREE P_REFS P_REFS_RO P_REFS_RO_SYS \
         P_REFS_RO_SYS_LOG P_REFS_RO_USR P_REFS_RW P_REFS_RW_SYS \
         P_REFS_RW_SYS_LOG P_REFS_RW_USR P_VOLS
@@ -63,12 +76,12 @@ btrfs_mount_handler () {
     : ${D_REFS_XX_USR:=usr}
 
     # Define entries within VOLS/*/.
+    : ${F_VOLS_XX_ATTR:=attr}
     : ${D_VOLS_XX_BOOT:=boot}
     : ${S_VOLS_XX_FS:=fs}
     : ${F_VOLS_XX_ID0:=id0}
     : ${L_VOLS_XX_ID1:=id1}
     : ${F_VOLS_XX_LOG:=log}
-    : ${F_VOLS_XX_META:=meta}
 
     # Prepare paths for BOOT.
     : ${P_BOOT:=${P}/${D_BOOT}}
@@ -96,18 +109,61 @@ btrfs_mount_handler () {
     # Prepare paths for VOLS.
     : ${P_VOLS:=${P}/${D_VOLS}}
 
-    set;return;
+    # Get the time (snapshot name).
+    now=$(date +%s)
+
+    # LOG_BOOT == true
+    #
+    # Log subvol HEAD at boot time, every time.
+    #
+    # Ensures there is a RO copy of whatever HEAD points to before doing
+    # anything else.
+    #
+    #   VOLS/${now} = snap( HEAD )
+    #   LOGS/REFS/SYS/BOOT/${now} -> VOLS/${now}
+    #   REFS/SYS/BOOT -> VOLS/${now}
+
+
+
+    # REF_STATE == detach
+    #
+    # Snapshot subvol REF, set HEAD link to SNAPSHOT, bypass REFS.
+    #
+    # Creates a temporary/persistent rollback environment. SNAPSHOT will be
+    # automatically garbage collected should ANY other REF be selected at a
+    # subsequent boot unless a reference to SNAPSHOT is created under REFS
+    # while the system is running. A recoverable snapshot will persist in
+    # HEAD's LOG until recycled.
+    #
+    #   VOLS/${now} = snap( REF )
+    #   HEAD -> VOLS/${now}
+
+
+
+    # REF_STATE == persist
+    #
+    # If REF is RO, enter subvol SNAPSHOT of REF. If REF is RW, enter REF.
+    #
+    # The standard method of switching the active subvol. If subvol REF is RW,
+    # use as-is. If it's RO, create a RW SNAPSHOT of it on the fly.
+    #
+    #   HEAD -> REF
+
+
+
+    # REF_STATE == snapshot
+    #
+    # Force a snapshot of subvol REF prior to entering.
+    #
+    # If subvol REF is RW, SNAPSHOT to LOG. If REF is RO, this has the same
+    # effect as `persist`.
+    #
+    #   VOLS/${now} = snap( REF )
+    #   REFS/USR/REF-${now} -> VOLS/${now}
+
+
 
 }
-
-# output handlers
-btrfsadm_info () { [ "${quiet}" != "y" ] && echo "btrfsadm(INFO): ${@}"; }
-
-btrfsadm_warn () { echo "btrfsadm(WARN): ${@}"; }
-
-btrfsadm_error () { echo "btrfsadm(ERROR): ${@}"; }
-
-btrfsadm_fatal () { echo "btrfsadm(FATAL): ${@}"; break=y; }
 
 # mount handlers
 btrfs_mount_handler_DEP () {
